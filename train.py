@@ -33,7 +33,7 @@ def plot(name, train_epoch, values, save):
     fig = plt.pause(1)  # show it for 1 second
     if save:
         now = datetime.datetime.now()
-        get_fig.savefig('results/plots/%s_%d_%d_%s.png' %
+        get_fig.savefig('results/plots/%s_%d_%.3f_%s.png' %
                         (name, train_epoch, values[-1], now.strftime("%Y-%m-%d_%H:%M:%S")))
 
 
