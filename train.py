@@ -5,6 +5,7 @@ from critic import BasicCritic
 from decoder import BasicDecoder
 from encoder import BasicEncoder
 from torchvision import datasets, transforms
+from IPython.display import clear_output
 import torchvision
 from torch.optim import Adam
 import pytorch_ssim
@@ -16,7 +17,7 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-def plot(name, train_epoch, value, save):
+def plot(name, train_epoch, values, save):
     clear_output(wait=True)
     plt.close('all')
     fig = plt.figure()
@@ -31,7 +32,9 @@ def plot(name, train_epoch, value, save):
     fig = plt.draw()  # draw the plot
     fig = plt.pause(1)  # show it for 1 second
     if save:
-        get_fig.savefig('S_GAN/plots/S_GAN_%d.png' % (values[-1]))
+        now = datetime.datetime.now()
+        get_fig.savefig('results/plots/%s_%d_%d_%s.png' %
+                        (name, train_epoch, values[-1], now.strftime("%Y-%m-%d_%H:%M:%S")))
 
 
 def main():
@@ -81,8 +84,8 @@ def main():
     critic = BasicCritic(hidden_size)
     cr_optimizer = Adam(critic.parameters(), lr=1e-4)
     # Why add encoder parameters too?
-    de_optimizer = Adam(list(decoder.parameters()) +
-                        list(encoder.parameters()), lr=1e-4)
+    en_de_optimizer = Adam(list(decoder.parameters()) +
+                           list(encoder.parameters()), lr=1e-4)
 
     for ep in range(epochs):
         metrics = {field: list() for field in METRIC_FIELDS}
@@ -122,10 +125,10 @@ def main():
                 payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
 
-            de_optimizer.zero_grad()
+            en_de_optimizer.zero_grad()
             (100.0 * encoder_mse + decoder_loss +
              generated_score).backward()  # Why 100?
-            de_optimizer.step()
+            en_de_optimizer.step()
 
             metrics['train.encoder_mse'].append(encoder_mse.item())
             metrics['train.decoder_loss'].append(decoder_loss.item())
@@ -158,14 +161,17 @@ def main():
             metrics['val.psnr'].append(
                 10 * torch.log10(4 / encoder_mse).item())
             metrics['val.bpp'].append(
-                self.data_depth * (2 * decoder_acc.item() - 1))
+                data_depth * (2 * decoder_acc.item() - 1))
         now = datetime.datetime.now()
-        name = "S_GAN_%+.3f_%s.dat" % (cover_score.item(),
+        name = "EN_DE_%+.3f_%s.dat" % (cover_score.item(),
                                        now.strftime("%Y-%m-%d_%H:%M:%S"))
-        fname = os.path.join('.', 'S_GAN', name)
+        fname = os.path.join('.', 'results/model', name)
         states = {
-            'state_dict': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
+            'state_dict_critic': critic.state_dict(),
+            'state_dict_encoder': encoder.state_dict(),
+            'state_dict_decoder': decoder.state_dict(),
+            'en_de_optimizer': en_de_optimizer.state_dict(),
+            'cr_optimizer': cr_optimizer.state_dict(),
             'metrics': metrics,
             'train_epoch': ep,
             'date': now.strftime("%Y-%m-%d_%H:%M:%S"),
@@ -183,10 +189,10 @@ def main():
 
 if __name__ == '__main__':
     for func in [
-            lambda:os.mkdir(os.path.join('.', 'S_GAN')),
-            lambda: os.mkdir(os.path.join('.', 'S_GAN/model')),
-            lambda: os.mkdir(os.path.join('.', 'S_GAN/metrics')),
-            lambda: os.mkdir(os.path.join('.', 'S_GAN/plots'))]:  # create directories
+            lambda:os.mkdir(os.path.join('.', 'results')),
+            lambda: os.mkdir(os.path.join('.', 'results/model')),
+            lambda: os.mkdir(os.path.join('.', 'results/metrics')),
+            lambda: os.mkdir(os.path.join('.', 'results/plots'))]:  # create directories
         try:
             func()
         except Exception as error:
