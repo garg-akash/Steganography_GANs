@@ -81,8 +81,8 @@ def main():
             (cover_score - generated_score).backward(retain_graph=False)
             cr_optimizer.step()
 
-            # for p in self.critic.parameters(): #What is this?
-            #     p.data.clamp_(-0.1, 0.1)
+            for p in self.critic.parameters(): #What is this?
+                p.data.clamp_(-0.1, 0.1)
             metrics['train.cover_score'].append(cover_score.item())
             metrics['train.generated_score'].append(generated_score.item())
 
@@ -98,7 +98,7 @@ def main():
 
             encoder_mse = mse_loss(generated, cover)
             decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
 
             de_optimizer.zero_grad()
@@ -108,7 +108,7 @@ def main():
 
             metrics['train.encoder_mse'].append(encoder_mse.item())
             metrics['train.decoder_loss'].append(decoder_loss.item())
-            # metrics['train.decoder_acc'].append(decoder_acc.item())
+            metrics['train.decoder_acc'].append(decoder_acc.item())
 
         for cover, _ in tqdm(valid_loader):
             gc.collect()
@@ -122,7 +122,7 @@ def main():
 
             encoder_mse = mse_loss(generated, cover)
             decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
             cover_score = torch.mean(critic.forward(cover))
 
@@ -136,7 +136,7 @@ def main():
             metrics['val.psnr'].append(
                 10 * torch.log10(4 / encoder_mse).item())
             metrics['val.bpp'].append(
-                self.data_depth * (2 * decoder_acc.item() - 1))
+                data_depth * (2 * decoder_acc.item() - 1))
 
     print(train_loader.shape)
 
