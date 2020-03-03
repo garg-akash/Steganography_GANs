@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-
+import numpy
 
 class BasicEncoder(nn.Module):
     """
@@ -46,13 +46,9 @@ class BasicEncoder(nn.Module):
 
     def forward(self, image, data):
         x = self._models[0](image)
-        x_list = [x]
-        x_1 = self._models[1](torch.cat(x_list + [data], dim=1))
-        x_list.append(x_1)
-        x_2 = self._models[2](torch.cat(x_list + [data], dim=1))
-        x_list.append(x_2)
-        x_3 = self._models[3](torch.cat(x_list + [data], dim=1))
-        x_list.append(x_3)
+        x_1 = self._models[1](torch.cat([x] + [data], dim=1))
+        x_2 = self._models[2](x_1)
+        x_3 = self._models[3](x_2)
         return x_3
 
 

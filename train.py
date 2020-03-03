@@ -1,15 +1,17 @@
-import gc
-import os
-import torch
-import tqdm
-import pytorch_ssim
-from torch.optim import Adam
-import torchvision
-from torchvision import datasets, transforms
-from encoder import BasicEncoder
-from decoder import BasicDecoder
-from critic import BasicCritic
 from torch.nn.functional import binary_cross_entropy_with_logits, mse_loss
+from critic import BasicCritic
+from decoder import BasicDecoder
+from encoder import BasicEncoder
+from torchvision import datasets, transforms
+import torchvision
+from torch.optim import Adam
+import pytorch_ssim
+import tqdm
+import torch
+import os
+import gc
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def main():

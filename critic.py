@@ -48,11 +48,8 @@ class BasicCritic(nn.Module):
 
     def forward(self, image):
         x = self._models[0](image)
-        x_list = [x]
-        x_1 = self._models[1](torch.cat(x_list, dim=1))
-        x_list.append(x_1)
-        x_2 = self._models[2](torch.cat(x_list, dim=1))
-        x_list.append(x_2)
-        x_3 = self._models[3](torch.cat(x_list, dim=1))
+        x_1 = self._models[1](x)
+        x_2 = self._models[2](x_1)
+        x_3 = self._models[3](x_2)
         return torch.mean(x_3.view(x_3.size(0), -1), dim=1)
         
