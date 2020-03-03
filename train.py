@@ -191,7 +191,6 @@ if __name__ == '__main__':
     for func in [
             lambda:os.mkdir(os.path.join('.', 'results')),
             lambda: os.mkdir(os.path.join('.', 'results/model')),
-            lambda: os.mkdir(os.path.join('.', 'results/metrics')),
             lambda: os.mkdir(os.path.join('.', 'results/plots'))]:  # create directories
         try:
             func()
