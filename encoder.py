@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy
 
+
 class BasicEncoder(nn.Module):
     """
     The BasicEncoder module takes an cover image and a data tensor and combines
@@ -36,7 +37,7 @@ class BasicEncoder(nn.Module):
         self.conv4 = nn.Sequential(
             self._conv2d(self.hidden_size, 3),
         )
-        return self.conv1, self.conv2, self.conv3, self.conv4 
+        return self.conv1, self.conv2, self.conv3, self.conv4
 
     def __init__(self, data_depth, hidden_size):
         super().__init__()
@@ -56,14 +57,16 @@ class ResidualEncoder(BasicEncoder):
 
     def forward(self, image, data):
         return image + super().forward(self, image, data)
-        
+
+
 class DenseEncoder(ResidualEncoder):
 
     def _build_models(self):
         self.conv1 = super()._models[0]
         self.conv2 = super()._models[1]
         self.conv3 = nn.Sequential(
-            self._conv2d(self.hidden_size * 2 + self.data_depth, self.hidden_size),
+            self._conv2d(self.hidden_size * 2 +
+                         self.data_depth, self.hidden_size),
             nn.LeakyReLU(inplace=True),
             nn.BatchNorm2d(self.hidden_size),
         )
@@ -72,3 +75,14 @@ class DenseEncoder(ResidualEncoder):
         )
 
         return self.conv1, self.conv2, self.conv3, self.conv4
+
+    def forward(self, image, data):
+        x = self._models[0](image)
+        x_list = [x]
+        x_1 = self._models[1](torch.cat(x_list+[data], dim=1))
+        x_list.append(x_1)
+        x_2 = self._models[2](torch.cat(x_list+[data], dim=1))
+        x_list.append(x_2)
+        x_3 = self._models[3](torch.cat(x_list+[data], dim=1))
+        x_list.append(x_3)
+        return image + x_3
