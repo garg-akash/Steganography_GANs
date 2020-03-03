@@ -16,7 +16,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def main():
     data_dir = 'div2k'
-    epochs = 1
+    epochs = 5
     data_depth = 2
     hidden_size = 32
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -66,60 +66,63 @@ def main():
 
     for ep in range(epochs):
         metrics = {field: list() for field in METRIC_FIELDS}
-        # for cover, _ in tqdm(train_loader):
-        #     gc.collect()
-        #     cover = cover.to(device)
-        #     N, _, H, W = cover.size()
-        #     # sampled from the discrete uniform distribution over 0 to 2
-        #     payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2)
-        #     generated = encoder.forward(cover, payload)
-        #     cover_score = torch.mean(critic.forward(cover))
-        #     generated_score = torch.mean(critic.forward(generated))
+        for cover, _ in tqdm(train_loader):
+            gc.collect()
+            cover = cover.to(device)
+            N, _, H, W = cover.size()
+            # sampled from the discrete uniform distribution over 0 to 2
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
+            generated = encoder.forward(cover, payload)
+            cover_score = torch.mean(critic.forward(cover))
+            generated_score = torch.mean(critic.forward(generated))
 
-        #     cr_optimizer.zero_grad()
-        #     (cover_score - generated_score).backward(retain_graph=False)
-        #     cr_optimizer.step()
+            cr_optimizer.zero_grad()
+            (cover_score - generated_score).backward(retain_graph=False)
+            cr_optimizer.step()
 
-        #     for p in self.critic.parameters(): #What is this?
-        #         p.data.clamp_(-0.1, 0.1)
-        #     metrics['train.cover_score'].append(cover_score.item())
-        #     metrics['train.generated_score'].append(generated_score.item())
+            # for p in self.critic.parameters(): #What is this?
+            #     p.data.clamp_(-0.1, 0.1)
+            metrics['train.cover_score'].append(cover_score.item())
+            metrics['train.generated_score'].append(generated_score.item())
 
-        # for cover, _ in tqdm(train_loader):
-        #     gc.collect()
-        #     cover = cover.to(device)
-        #     N, _, H, W = cover.size()
-        #     # sampled from the discrete uniform distribution over 0 to 2
-        #     payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2)
-        #     generated = encoder.forward(cover, payload)
-        #     decoded = decoder.forward(generated)
+        for cover, _ in tqdm(train_loader):
+            gc.collect()
+            cover = cover.to(device)
+            N, _, H, W = cover.size()
+            # sampled from the discrete uniform distribution over 0 to 2
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
+            generated = encoder.forward(cover, payload)
+            decoded = decoder.forward(generated)
 
-        #     encoder_mse = mse_loss(generated, cover)
-        #     decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-        #     decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
-        #     generated_score = torch.mean(critic.forward(generated))
+            encoder_mse = mse_loss(generated, cover)
+            decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
+            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            generated_score = torch.mean(critic.forward(generated))
 
-        #     de_optimizer.zero_grad()
-        #     (100.0 * encoder_mse + decoder_loss +
-        #      generated_score).backward()  # Why 100?
-        #     de_optimizer.step()
+            de_optimizer.zero_grad()
+            (100.0 * encoder_mse + decoder_loss +
+             generated_score).backward()  # Why 100?
+            de_optimizer.step()
 
-        #     metrics['train.encoder_mse'].append(encoder_mse.item())
-        #     metrics['train.decoder_loss'].append(decoder_loss.item())
-        #     metrics['train.decoder_acc'].append(decoder_acc.item())
+            metrics['train.encoder_mse'].append(encoder_mse.item())
+            metrics['train.decoder_loss'].append(decoder_loss.item())
+            # metrics['train.decoder_acc'].append(decoder_acc.item())
 
         for cover, _ in tqdm(valid_loader):
             gc.collect()
             cover = cover.to(device)
             N, _, H, W = cover.size()
             # sampled from the discrete uniform distribution over 0 to 2
-            payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2)
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
             generated = encoder.forward(cover, payload)
             decoded = decoder.forward(generated)
 
             encoder_mse = mse_loss(generated, cover)
             decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-            decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
             cover_score = torch.mean(critic.forward(cover))
 
@@ -133,7 +136,9 @@ def main():
             metrics['val.psnr'].append(
                 10 * torch.log10(4 / encoder_mse).item())
             metrics['val.bpp'].append(
-                data_depth * (2 * decoder_acc.item() - 1))
+                self.data_depth * (2 * decoder_acc.item() - 1))
+
+    print(train_loader.shape)
 
 
 if __name__ == '__main__':
