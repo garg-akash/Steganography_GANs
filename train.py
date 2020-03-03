@@ -1,3 +1,5 @@
+import datetime
+import matplotlib.pyplot as plt
 from torch.nn.functional import binary_cross_entropy_with_logits, mse_loss
 from critic import BasicCritic
 from decoder import BasicDecoder
@@ -12,6 +14,24 @@ import os
 import gc
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+def plot(name, train_epoch, value, save):
+    clear_output(wait=True)
+    plt.close('all')
+    fig = plt.figure()
+    fig = plt.ion()
+    fig = plt.subplot(1, 1, 1)
+    fig = plt.title('epoch: %s -> %s: %s' % (train_epoch, name, values[-1]))
+    fig = plt.ylabel(name)
+    fig = plt.xlabel('epoch')
+    fig = plt.plot(values)
+    fig = plt.grid()
+    get_fig = plt.gcf()
+    fig = plt.draw()  # draw the plot
+    fig = plt.pause(1)  # show it for 1 second
+    if save:
+        get_fig.savefig('S_GAN/plots/S_GAN_%d.png' % (values[-1]))
 
 
 def main():
@@ -81,8 +101,8 @@ def main():
             (cover_score - generated_score).backward(retain_graph=False)
             cr_optimizer.step()
 
-            # for p in self.critic.parameters(): #What is this?
-            #     p.data.clamp_(-0.1, 0.1)
+            for p in critic.parameters():
+                p.data.clamp_(-0.1, 0.1)
             metrics['train.cover_score'].append(cover_score.item())
             metrics['train.generated_score'].append(generated_score.item())
 
@@ -98,7 +118,8 @@ def main():
 
             encoder_mse = mse_loss(generated, cover)
             decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            decoder_acc = (decoded >= 0.0).eq(
+                payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
 
             de_optimizer.zero_grad()
@@ -108,7 +129,7 @@ def main():
 
             metrics['train.encoder_mse'].append(encoder_mse.item())
             metrics['train.decoder_loss'].append(decoder_loss.item())
-            # metrics['train.decoder_acc'].append(decoder_acc.item())
+            metrics['train.decoder_acc'].append(decoder_acc.item())
 
         for cover, _ in tqdm(valid_loader):
             gc.collect()
@@ -122,7 +143,8 @@ def main():
 
             encoder_mse = mse_loss(generated, cover)
             decoder_loss = binary_cross_entropy_with_logits(decoded, payload)
-            #decoder_acc = (decoded >= 0.0).eq(payload >= 0.5).sum().float() / payload.numel()
+            decoder_acc = (decoded >= 0.0).eq(
+                payload >= 0.5).sum().float() / payload.numel()
             generated_score = torch.mean(critic.forward(generated))
             cover_score = torch.mean(critic.forward(cover))
 
@@ -137,9 +159,37 @@ def main():
                 10 * torch.log10(4 / encoder_mse).item())
             metrics['val.bpp'].append(
                 self.data_depth * (2 * decoder_acc.item() - 1))
-
-    print(train_loader.shape)
+        now = datetime.datetime.now()
+        name = "S_GAN_%+.3f_%s.dat" % (cover_score.item(),
+                                       now.strftime("%Y-%m-%d_%H:%M:%S"))
+        fname = os.path.join('.', 'S_GAN', name)
+        states = {
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'metrics': metrics,
+            'train_epoch': ep,
+            'date': now.strftime("%Y-%m-%d_%H:%M:%S"),
+        }
+        torch.save(states, fname)
+        plot('encoder_mse', ep, metrics['val.encoder_mse'], True)
+        plot('decoder_loss', ep, metrics['val.decoder_loss'], True)
+        plot('decoder_acc', ep, metrics['val.decoder_acc'], True)
+        plot('cover_score', ep, metrics['val.cover_score'], True)
+        plot('generated_score', ep, metrics['val.generated_score'], True)
+        plot('ssim', ep, metrics['val.ssim'], True)
+        plot('psnr', ep, metrics['val.psnr'], True)
+        plot('bpp', ep, metrics['val.bpp'], True)
 
 
 if __name__ == '__main__':
+    for func in [
+            lambda:os.mkdir(os.path.join('.', 'S_GAN')),
+            lambda: os.mkdir(os.path.join('.', 'S_GAN/model')),
+            lambda: os.mkdir(os.path.join('.', 'S_GAN/metrics')),
+            lambda: os.mkdir(os.path.join('.', 'S_GAN/plots'))]:  # create directories
+        try:
+            func()
+        except Exception as error:
+            print(error)
+            continue
     main()
