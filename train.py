@@ -1,6 +1,10 @@
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 import gc
 import os
 import torch
+from tqdm import tqdm
 from torch.optim import Adam
 import torchvision
 from torchvision import datasets, transforms
@@ -8,10 +12,11 @@ from encoder import BasicEncoder
 from decoder import BasicDecoder
 from critic import BasicCritic
 from torch.nn.functional import binary_cross_entropy_with_logits, mse_loss
+import pytorch_ssim
 
 def main():
-	data_dir = ‘SteganoData’
-	epochs = 5
+	data_dir = "div2k"
+	epochs = 1
 	data_depth = 2
 	hidden_size = 32
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -40,11 +45,15 @@ def main():
 	    							transforms.ToTensor(),
 	    							transforms.Normalize(mu, sigma)])
 
-	train_set = datasets.ImageFolder(os.path.join(data_dir, "train"), transform=transform)
+	train_set = datasets.ImageFolder(os.path.join(data_dir, "train/"), transform=transform)
 	train_loader = torch.utils.data.DataLoader(train_set, batch_size=4, shuffle=True)
 
-	valid_set = datasets.ImageFolder(os.path.join(data_dir, "validation"), transform=transform)
+	valid_set = datasets.ImageFolder(os.path.join(data_dir, "val/"), transform=transform)
 	valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=4, shuffle=False)
+
+	# for i, data in enumerate(train_loader, 0):
+	# 	inputs, labels = data
+	# 	print(inputs.shape)	
 
 	encoder = BasicEncoder(data_depth, hidden_size)
 	decoder = BasicDecoder(data_depth, hidden_size)
@@ -58,7 +67,7 @@ def main():
 			gc.collect()
 			cover = cover.to(device)
 			N, _, H, W = cover.size()
-			payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
+			payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
 			generated = encoder.forward(cover, payload)
 			cover_score = torch.mean(critic.forward(cover))
 			generated_score = torch.mean(critic.forward(generated))
@@ -76,7 +85,7 @@ def main():
 			gc.collect()
 			cover = cover.to(device)
 			N, _, H, W = cover.size()
-			payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
+			payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
 			generated = encoder.forward(cover, payload)
 			decoded = decoder.forward(generated)
 
@@ -98,7 +107,7 @@ def main():
 			gc.collect()
 			cover = cover.to(device)
 			N, _, H, W = cover.size()
-			payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
+			payload = torch.zeros((N, data_depth, H, W), device=device).random_(0, 2) #sampled from the discrete uniform distribution over 0 to 2
 			generated = encoder.forward(cover, payload)
 			decoded = decoder.forward(generated)
 
@@ -113,11 +122,10 @@ def main():
 			metrics['val.decoder_acc'].append(decoder_acc.item())
 			metrics['val.cover_score'].append(cover_score.item())
 			metrics['val.generated_score'].append(generated_score.item())
-			metrics['val.ssim'].append(ssim(cover, generated).item())
+			metrics['val.ssim'].append(pytorch_ssim.ssim(cover, generated).item())
 			metrics['val.psnr'].append(10 * torch.log10(4 / encoder_mse).item())
 			metrics['val.bpp'].append(self.data_depth * (2 * decoder_acc.item() - 1))
 
-	print(train_loader.shape)
 
 if __name__ == '__main__':
     main()
