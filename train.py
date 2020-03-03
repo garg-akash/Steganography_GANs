@@ -6,7 +6,7 @@ from torchvision import datasets, transforms
 import torchvision
 from torch.optim import Adam
 import pytorch_ssim
-import tqdm
+from tqdm import tqdm
 import torch
 import os
 import gc
@@ -47,12 +47,12 @@ def main():
                                     transforms.Normalize(mu, sigma)])
 
     train_set = datasets.ImageFolder(os.path.join(
-        data_dir, "train/_"), transform=transform)
+        data_dir, "train/"), transform=transform)
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=4, shuffle=True)
 
     valid_set = datasets.ImageFolder(os.path.join(
-        data_dir, "val/_"), transform=transform)
+        data_dir, "val/"), transform=transform)
     valid_loader = torch.utils.data.DataLoader(
         valid_set, batch_size=4, shuffle=False)
 
@@ -71,7 +71,8 @@ def main():
             cover = cover.to(device)
             N, _, H, W = cover.size()
             # sampled from the discrete uniform distribution over 0 to 2
-            payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2)
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
             generated = encoder.forward(cover, payload)
             cover_score = torch.mean(critic.forward(cover))
             generated_score = torch.mean(critic.forward(generated))
@@ -90,7 +91,8 @@ def main():
             cover = cover.to(device)
             N, _, H, W = cover.size()
             # sampled from the discrete uniform distribution over 0 to 2
-            payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2)
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
             generated = encoder.forward(cover, payload)
             decoded = decoder.forward(generated)
 
@@ -113,7 +115,8 @@ def main():
             cover = cover.to(device)
             N, _, H, W = cover.size()
             # sampled from the discrete uniform distribution over 0 to 2
-            payload = torch.zeros((N, data_depth, H, W), device).random_(0, 2)
+            payload = torch.zeros((N, data_depth, H, W),
+                                  device=device).random_(0, 2)
             generated = encoder.forward(cover, payload)
             decoded = decoder.forward(generated)
 
