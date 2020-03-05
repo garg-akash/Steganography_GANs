@@ -58,8 +58,16 @@ class BasicDecoder(nn.Module):
 class DenseDecoder(BasicDecoder):
 
     def _build_models(self):
-        self.conv1 = super()._models[0]
-        self.conv2 = super()._models[1]
+        self.conv1 = nn.Sequential(
+            self._conv2d(3, self.hidden_size),
+            nn.LeakyReLU(inplace=True),
+            nn.BatchNorm2d(self.hidden_size),
+        )
+        self.conv2 = nn.Sequential(
+            self._conv2d(self.hidden_size, self.hidden_size),
+            nn.LeakyReLU(inplace=True),
+            nn.BatchNorm2d(self.hidden_size),
+        )
         self.conv3 = nn.Sequential(
             self._conv2d(self.hidden_size * 2, self.hidden_size),
             nn.LeakyReLU(inplace=True),
