@@ -5,7 +5,7 @@ Image steganography usings Generative Adverserial Networks
 
 ## Documentation
 
-If you want to read more about the project developing, you can find all the details in the report present in the repository (report_draftX.pdf).
+If you want to read more about the project developing, you can find all the details in the [report](https://github.com/garg-akash/Steganography_GANs/blob/master/report.pdf).
 
 ## Datasets used
 
