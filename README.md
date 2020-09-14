@@ -1,6 +1,17 @@
 # Steganography_GANs
 Image steganography usings Generative Adverserial Networks
 
+
+**Abstract**
+
+Steganography is a generic term that denotes all those techniques that somehow try to hide information within other forms of data.  Differently from cryptography, which aims to hide messages by manipulation of the data, steganography aims to hide the existence of the information itself.
+
+In this paper we are going to present steganography applied to images and audio, and in particular we will analyze the benefits that generative adversarial training produces in this context. The method used consists in three networks which works toghether: the first, which from now on we will refer to as \emph{encoder}, responsible for hiding the information, the second, named \emph{decoder}, responsible for recovering the secret message and the third, called the \emph{critic} which detect the presence of the hided information. The real place in which the adversarial training takes place is between the encoder and the critic, this last one provides feedback on the performance of the second and ensure the encoder to produce realistic images as much as possible. 
+
+In this project we re-implemented and extended the work done by Kevin A. Zhang, Alfredo Cuesta-Infante, Lei Xu and Kalyan Veeramachaneni, in this paper:[Stegano-GAN: High Capacity Image Steganography with GANs](https://arxiv.org/abs/1901.03892), and by $Dengpan Ye$, $Shunzhi Jiang$, and $Jiaqin Huang$ in this paper [Heard More Than Heard: An Audio Steganography Method Based on GAN](https://arxiv.org/abs/1907.04986).
+
+*Keywords: Image Steganography, Audio Steganography, Information Hiding, Unsupervised Learning, Deep Learning, Generative Adversarial Network.*
+
 <p align="center" width="100%">
 <img src="/images/img1.png" alt="" width= '100%'/>
 </p>
